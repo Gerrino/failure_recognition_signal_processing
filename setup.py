@@ -1,9 +1,17 @@
 from setuptools import setup, find_namespace_packages
 import sys
-__version__ = '1.0.1'
+__version__ = '1.0.2'
 
 required = [
-    "matplotlib",    
+    "scikit-learn",
+    "click",
+    "tqdm",
+    "numpy<=1.22",
+    "matplotlib",
+    "pandas",
+    "cuda-python",
+    "tsfresh",
+    "sqlalchemy"
 ]
 
 setup(
