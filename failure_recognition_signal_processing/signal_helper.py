@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from tsfresh.utilities.string_manipulation import convert_to_output_format
 from tsfresh.feature_extraction.feature_calculators import set_property
-import failure_recognition.signal_processing.signal_helper
+import failure_recognition_signal_processing.signal_helper
 
 
 def __get_bin_search_dir(fun_x: Callable, y_target: float, x_i: float, pos_slope: bool, epsilon: float) -> int:

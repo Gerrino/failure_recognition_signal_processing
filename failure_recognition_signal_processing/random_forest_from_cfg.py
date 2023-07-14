@@ -17,7 +17,7 @@ import numpy as np
 import time
 import pandas as pd
 
-from failure_recognition.signal_processing.feature_container import FeatureContainer
+from failure_recognition_signal_processing.feature_container import FeatureContainer
 
 
 def rf_from_cfg_extended(
