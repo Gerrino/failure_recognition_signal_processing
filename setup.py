@@ -7,14 +7,14 @@ required = [
 ]
 
 setup(
-    name="failure_recognition_signal_proccessing",
+    name="failure_recognition_signal_processing",
     version=__version__,
-    packages=['failure_recognition_signal_proccessing'],
+    packages=['failure_recognition_signal_processing'],
     install_requires=required,
     extras_require={
         "dev": ["pylint", "black", "sphinx"],
     },
-    py_modules=['failure_recognition_signal_proccessing'],
+    #py_modules=['failure_recognition_signal_proccessing'],
     include_package_data=True
 )
 
