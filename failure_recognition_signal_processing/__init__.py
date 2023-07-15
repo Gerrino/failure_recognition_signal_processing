@@ -1,3 +1,5 @@
+"""Init module for failure recognition"""
+
 DEFAULT_MAX_INT = 100
 DEFAULT_MIN_INT = 0
 DEFAULT_MAX_FLOAT = 10

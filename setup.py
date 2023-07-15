@@ -1,5 +1,5 @@
-from setuptools import setup, find_namespace_packages
-import sys
+from setuptools import setup
+
 __version__ = '1.0.2'
 
 required = [

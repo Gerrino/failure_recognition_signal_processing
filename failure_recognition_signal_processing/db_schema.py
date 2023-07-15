@@ -1,17 +1,22 @@
+"""database schema module for timeseries"""
+
+# pylint: disable=invalid-name
+
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, Float
-from sqlalchemy.orm import relationship
-from sqlalchemy import ForeignKey
 
 Base = declarative_base()
 
 
+# pylint: disable=missing-function-docstring
 class SchemaInterface:
+    """Interface for timeseries schema"""
+
     __tablename__: str = None
 
     @classmethod
     def get_rename_dict(cls) -> dict:
-        return dict()
+        return {}
 
     @classmethod
     def get_drop_list(cls) -> list:
@@ -19,7 +24,9 @@ class SchemaInterface:
 
 
 class timeseries_me(Base):
-    __tablename__ = 'timeseries_me'
+    """Schema for main timeseries"""
+
+    __tablename__ = "timeseries_me"
     timeseries_Number = Column(Integer, primary_key=True)
     TimeSeries_ME_id = Column(Integer)
     timeseries_me_count = Column(Integer)
@@ -56,15 +63,15 @@ class timeseries_me(Base):
     Q03 = Column(Float, name="31_Q03")
     Kolbenschmierzeit = Column(Float, name="Kolbenschmierzeit")
     Spruehzeit = Column(Float, name="Sprühzeit")
-    #xMischungsverhaeltnis = Column(Float, name="Mischungsverhältnis")
-    #xspez_Q_Spruehmittelkonzentrat = Column(Float, name="spez._Q_Sprühmittelkonzentrat")
+    # xMischungsverhaeltnis = Column(Float, name="Mischungsverhältnis")
+    # xspez_Q_Spruehmittelkonzentrat = Column(Float, name="spez._Q_Sprühmittelkonzentrat")
     Temperiermittelmenge_FF = Column(Float, name="Temperiermittelmenge_FF")
     Temperiermittelmenge_BF = Column(Float, name="Temperiermittelmenge_BF")
     P01_Heizung_FF = Column(Float, name="P01_Heizung_FF")
     P02_Heizung_BF = Column(Float, name="P02_Heizung_BF")
-    #xP03_Kuehlung_Giesskolben = Column(Float, name="P03_Kühlung_Giesskolben")
+    # xP03_Kuehlung_Giesskolben = Column(Float, name="P03_Kühlung_Giesskolben")
     P04_Wasser_Kuehlung_total = Column(Float, name="P04_Wasser_Kühlung_total")
-    #xP05_Spruehen_Form = Column(Float, name="P05_Sprühen_Form")
+    # xP05_Spruehen_Form = Column(Float, name="P05_Sprühen_Form")
     Diff_Temp10_Temp11 = Column(Float, name="Differenz_Temp10/Temp11")
     Steigung_Temp09 = Column(Float, name="Steigung_Temp09")
     Steigung_Temp10 = Column(Float, name="Steigung_Temp10")
@@ -105,12 +112,11 @@ class timeseries_me(Base):
             "30_Temp13": "Temp13_30",
             "31_Q03": "Q03_31",
             "spez._Q_Sprühmittelkonzentrat": "spez_Sprühmittelkonzentrat",
-            "Differenz_Temp10/Temp11": "Differenz_Temp10Temp11"
+            "Differenz_Temp10/Temp11": "Differenz_Temp10Temp11",
         }
-        ts_rename_map.update({
-            cls.timeseries_me_count.name: "time",
-            cls.TimeSeries_ME_id.name: "id"
-        })
+        ts_rename_map.update(
+            {cls.timeseries_me_count.name: "time", cls.TimeSeries_ME_id.name: "id"}
+        )
         return ts_rename_map
 
     @classmethod
@@ -119,7 +125,9 @@ class timeseries_me(Base):
 
 
 class timeseries_zdg(Base):
-    __tablename__ = 'timeseries_zdg'
+    """Schema for zdg timeseries"""
+
+    __tablename__ = "timeseries_zdg"
     idtimeseries_zdg_id = Column(Integer, primary_key=True)
     timeseries_col = Column(Integer)
     timeseries_id = Column(Integer)
