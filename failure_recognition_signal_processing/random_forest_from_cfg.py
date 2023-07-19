@@ -5,17 +5,18 @@ Created on Fri Aug 13 14:16:42 2021
 
 @author: gerritnoske
 """
-import logging
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.pipeline import Pipeline, make_pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
+
 from typing import Tuple
-from sklearn.metrics import make_scorer
-from sklearn.model_selection import cross_val_score
 import numpy as np
 import time
 import pandas as pd
+import logging
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import make_scorer
+from sklearn.model_selection import cross_val_score
 
 from failure_recognition_signal_processing.feature_container import FeatureContainer
 
@@ -28,7 +29,7 @@ def rf_from_cfg_extended(
     y: pd.DataFrame,
     feature_container: FeatureContainer,
     window_size_ratio: float = None,
-    logger: logging.Logger = None
+    logger: logging.Logger = None,
 ) -> float:
     """
     Creates a random forest regressor from sklearn and fits the given data on it.
@@ -50,12 +51,14 @@ def rf_from_cfg_extended(
     """
     logger = feature_container.logger if logger is None else logger
     max_time = max(timeseries["time"])
-    windowed_time_series, window_left, window_right = timeseries, 0, max_time   
+    windowed_time_series, window_left, window_right = timeseries, 0, max_time
     if window_size_ratio is not None:
         window_size = window_size_ratio * max_time
         window_left = cfg["window_offset_percent"] / 100.0 * (max_time - window_size)
         window_right = window_left + window_size
-        windowed_time_series = timeseries.query(f"time >= {window_left} and time <= {window_right}")
+        windowed_time_series = timeseries.query(
+            f"time >= {window_left} and time <= {window_right}"
+        )
     rfr = get_rfr(cfg, seed)
     # features
     start_time = time.time()
@@ -66,21 +69,29 @@ def rf_from_cfg_extended(
 
     # Creating root mean square error for sklearns crossvalidation
     rmse_scorer = make_scorer(rmse, greater_is_better=False)
-    feature_matrix = pd.concat([feature_container.feature_state.reset_index(drop=True), test_settings.reset_index(drop=True)], axis=1)
+    feature_matrix = pd.concat(
+        [
+            feature_container.feature_state.reset_index(drop=True),
+            test_settings.reset_index(drop=True),
+        ],
+        axis=1,
+    )
     logger.debug(f"Shape feature matrix: {feature_matrix.shape}")
     score = cross_val_score(rfr, feature_matrix, y, cv=10, scoring=rmse_scorer)
     duration = time.time() - start_time
     cost = -1 * np.mean(score)  # + 0.01 * duration
     logger.info(f"cost: {cost} | mean-score: {np.mean(score)}")
-    logger.debug(f"eval feature state: ({duration})s, columns: {feature_container.feature_state.columns}")
+    logger.debug(
+        f"eval feature state: ({duration})s, columns: {feature_container.feature_state.columns}"
+    )
     logger.debug("")
     logger.debug("**")
     logger.debug(f"size of windowed time series {len(windowed_time_series)}")
-    if (win_size:=cfg.get('window_size_percent')) is not None:
+    if (win_size := cfg.get("window_size_percent")) is not None:
         logger.debug(
             f"Size {win_size} Duration {round(duration)}s, window_left:{window_left}, "
             f"window_right:{window_right}/{max_time}"
-        ) 
+        )
     return cost  # Because cross_validation sign-flips the score
 
 
@@ -90,25 +101,29 @@ def get_prediction(
     feature_container: FeatureContainer,
     x_train: pd.DataFrame,
     test_settings_train: pd.DataFrame,
-    y_train: pd.DataFrame, 
+    y_train: pd.DataFrame,
     x_test: pd.DataFrame,
     test_settings_test: pd.DataFrame,
 ) -> Tuple[pd.DataFrame, any]:
     """
     Calculate the feature state given the training data, and the test data for all features.
     Fit a random forest regressor to the feature state (training set) and return the predicted output for the test data
-    
+
     Returns
     ---
     y_pred: DataFrame, importances"""
     rfr = get_rfr(cfg, seed)
     feature_container.reset_feature_state()
     feature_container.compute_feature_state(x_train, cfg, compute_for_all_features=True)
-    feature_matrix_train = pd.concat([feature_container.feature_state, test_settings_train], axis=1)
+    feature_matrix_train = pd.concat(
+        [feature_container.feature_state, test_settings_train], axis=1
+    )
     rfr.fit(feature_matrix_train, y_train)
     feature_container.reset_feature_state()
     feature_container.compute_feature_state(x_test, cfg, compute_for_all_features=True)
-    feature_matrix_test = pd.concat([feature_container.feature_state, test_settings_test], axis=1)
+    feature_matrix_test = pd.concat(
+        [feature_container.feature_state, test_settings_test], axis=1
+    )
     y_pred = rfr.predict(feature_matrix_test)
     importances = rfr.steps[1][1].feature_importances_
     return y_pred, importances

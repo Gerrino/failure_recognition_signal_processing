@@ -5,7 +5,7 @@ from sqlite3 import OperationalError
 
 conn = sqlite3.connect('csc455_HW3.db')
 c = conn.cursor()
-file_path = Path("C:\git/failure_recognition/failure-recognition-signal-processing\examples/buehler_ts_timeseries_me.sql")
+file_path = Path("C:\git/failure_recognition/failure-recognition-signal-processing\examples/bue_ts_timeseries_me.sql")
 print("exists", file_path.exists())
 
 def executeScriptsFromFile(filename):
