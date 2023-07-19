@@ -54,7 +54,7 @@ def plot_column(data_frame: pd.DataFrame, column_name: str, max_timeseries: int 
 
 if __name__ == "__main__":
     csv_dir = Path(
-        "examples/bueh_example/parts")
+        "examples/bue_example/parts")
     data_frame = data_frame_from_csv_dir(csv_dir, csv_count=2)
     plot_column(data_frame, "19_Temp11", max_timeseries=None)
     pass
