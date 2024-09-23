@@ -17,9 +17,6 @@ import pandas as pd
 from pandas import DataFrame as df
 
 
-
-
-
 def convert_flat_series(flat_rows: list, time_series_id: str =
                         TIME_SERIES_ID, time_id: str = TIME_ID) -> Tuple[list, Dict[int, any]]:
     time_series_map: Dict[int, list] = {}

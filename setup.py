@@ -3,6 +3,7 @@ from setuptools import setup
 __version__ = '1.0.3'
 
 required = [
+    "tabulate",
     "scikit-learn",
     "click",
     "tqdm",
