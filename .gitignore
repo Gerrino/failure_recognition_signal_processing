@@ -140,3 +140,4 @@ user_data.yaml
 *.db
 *.pkl
 examples/dumps/
+examples/dumps_kgt_bueh/data_1/AUTOML_draft_v054.docx
