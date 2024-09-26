@@ -214,7 +214,10 @@ def convert_to_tsfresh(df_csv: pd.DataFrame, time_range: tuple) -> Tuple[list, D
         sensor_data_tsfresh = pd.DataFrame(data)
         sensor_data_tsfresh.set_index("id")
 
-        sensor_df_map[sensor_number] = pd.concat([sensor_df_map[sensor_number], sensor_data_tsfresh], axis=0)
+        if sensor_df_map[sensor_number].shape[0] == 0:
+            sensor_df_map[sensor_number] = sensor_data_tsfresh
+        else:
+            sensor_df_map[sensor_number] = pd.concat([sensor_df_map[sensor_number], sensor_data_tsfresh], axis=0)
 
     output_df = sensor_df_map.pop(sensor_number)    
     for sensor, df in sensor_df_map.items():
@@ -231,7 +234,7 @@ def convert_to_tsfresh(df_csv: pd.DataFrame, time_range: tuple) -> Tuple[list, D
 if __name__ == "__main__":
     time_range = (0, 17.70)
 
-    for i in range(12, 16):
+    for i in range(1, 16):
         machine_csv = Path(f"examples/dumps_kgt_bueh/data_1/machine_data/{i}.csv")
 
         if not machine_csv.exists():
