@@ -91,10 +91,12 @@ class FeatureContainer:
         """
         if len(new_sensor_state) == 0:
             return
+        
         if len(self.feature_state) == 0:
             self.feature_state = {}
             self.feature_state = new_sensor_state
             return
+        
         # old_cols_cnt = len(self.feature_state.columns)
         # self.logger.info(f"old columns \n {self.feature_state.columns.values}")
         # self.logger.info(f"new columns \n {new_sensor_state.columns.values}")
@@ -106,11 +108,14 @@ class FeatureContainer:
                 if f"__{f.name}" in c
             ]
             self.feature_state = self.feature_state.drop(parameter_columns, axis=1)
+        
         self.new_columns = self.new_columns.union(list(new_sensor_state.columns))
+        
         for overwrite_col in [
             c for c in new_sensor_state.columns if c in self.feature_state.columns
         ]:
             del self.feature_state[overwrite_col]
+        
         self.feature_state = pd.concat([self.feature_state, new_sensor_state], axis=1)
 
         # self.logger.info(f"result columns \n{self.feature_state.columns.values}")
@@ -124,12 +129,15 @@ class FeatureContainer:
         """Load features/rf params from file"""
         with open(tsfresh_features, "r", encoding="utf-8") as features_file:
             feature_list = json.load(features_file)
+        
         for feature in feature_list:
             feat = Feature.from_json(feature)
             self.feature_list.append(feat)
         self.random_forest_params.clear()
+        
         with open(random_forest_parameters, "r", encoding="utf-8") as features_file:
             forest_parameters_json = json.load(features_file)
+        
         for forest_parameter_json in forest_parameters_json:
             self.random_forest_params.append(
                 MyProperty.from_json(forest_parameter_json)
@@ -179,6 +187,7 @@ class FeatureContainer:
                 column_sort="time",
                 kind_to_fc_parameters=kind_to_fc_parameters,
             )
+           
             X = impute(x)
             self.column_update(X)
 
@@ -211,19 +220,24 @@ class FeatureContainer:
         def merge_with_coeffi(feat: Feature, params: Union[dict, None]) -> List[Dict]:
             """Return a list of param dicts for all coefficients"""
             coeffi = feat.coefficients
+            
             if coeffi is None:
                 if params is None:
                     return None
                 return [params]
+            
             merged_list = []
             coeffi_values = coeffi.get_values()
+           
             if len(coeffi_values) == 0:
                 raise ValueError("merge_with_coeffi: Zero coefficients")
+           
             for value in coeffi_values:
                 value: int
                 coeffi_dict = dict(params) if params is not None else {}
                 coeffi_dict[coeffi.name] = value
                 merged_list.append(coeffi_dict)
+           
             return merged_list
 
         feature_dict = {}

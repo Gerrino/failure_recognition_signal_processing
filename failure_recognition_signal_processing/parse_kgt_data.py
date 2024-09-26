@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 import os
 from pathlib import Path
 from matplotlib import pyplot as plt
@@ -7,6 +8,9 @@ import pandas as pd
 from typing import List, Dict, Tuple
 
 from sklearn.model_selection import KFold
+
+from failure_recognition_signal_processing import PATH_DICT
+from failure_recognition_signal_processing.feature_container import FeatureContainer
 
 
 class SensorData:
@@ -61,6 +65,17 @@ def segment_by_time_range(dataframe: pd.DataFrame, time_range: Tuple[float, floa
 def extract_sensor_name(column_name: str) -> str:
     """Extract sensor name from the column name."""
     return column_name.split("_")[3]  # Assuming the sensor name is always in the same position
+
+def extract_date_time(column_name: str) -> datetime:
+    """Extract sensor name from the column name."""
+    
+    _date =  column_name.split("_")[8]  # Assuming the sensor name is always in the same position
+    _time =  column_name.split("_")[9]  # Assuming the sensor name is always in the same position
+
+    date_time = datetime.strptime(f"{_date} {_time}", '%Y-%m-%d %H:%M:%S') # 2017-12-05_08:10:05
+
+    return date_time
+
 
 
 def combine_sensor_columns(sensor_columns: List[pd.DataFrame]) -> pd.DataFrame:
@@ -155,18 +170,85 @@ def combine_multi_machine_data(sensor_name: str, training_machines: List[Machine
     return (training_df_combined, training_labels)
 
 
-def convert_to_tsfresh(df_tsfresh: pd.DataFrame, sensor: int, group_by: str = "id"):
-    """Given a dataframe in tsfresh format (row: (time, id, sensors)) extract
-    a dataframe for a single sensor (size: N_TIME x N_TIMESERIES, row: (sensor_Tj_ti))
+def convert_to_tsfresh(df_csv: pd.DataFrame, time_range: tuple) -> Tuple[list, Dict[int, any]]:
+    """Convert time, sensor0/datetime0, .., sensor0/datetimeN; ..,sensorM/dateTimeN => id, time, sensor0, .., sensorM
+    
     """
-    if any((missing := x) not in df_tsfresh for x in [group_by, "time", sensor]):
-        raise ValueError(f"convert_from_tsfresh: Missing columns {missing}!")
 
-    error_negative_list = list(df_tsfresh.groupby(group_by))
 
-    timeseries_list: List[pd.DataFrame] = [
-        x[1][["time", sensor]].set_index("time") for x in error_negative_list
-    ]
-    joined_timeseries = pd.concat(timeseries_list, axis=1)
+    time_series_map: Dict[int, list] = {}
 
-    return joined_timeseries
+    sensor_list = [0, 1, 2, 3, 4, 5, 6, 7]
+    
+    output_df = pd.DataFrame(columns=["time","id"])
+    output_df.set_index("id") 
+
+    df_csv = segment_by_time_range(df_csv, time_range).dropna(axis=1)
+
+    current_id_map = {}
+    current_id = -1
+
+    sensor_df_map = {}
+
+    for i, col_name in enumerate(df_csv.columns):
+
+        sensor = extract_sensor_name(col_name)
+        datetime = extract_date_time(col_name)
+        sensor_number = sensor[1:]
+
+        if sensor_number not in sensor_df_map:
+            sensor_df_map[sensor_number] = pd.DataFrame(columns=["time","id", sensor_number]) 
+
+        if datetime not in current_id_map:
+            current_id += 1
+            current_id_map[datetime] = current_id
+        else:
+            current_id = current_id_map.get(datetime)        
+
+        column = pd.Series(df_csv.iloc[:, i])
+        id_column = pd.Series([current_id] * column.shape[0])
+        time_column = pd.Series(column.index)
+        column = column.reset_index(drop=True)
+
+        data = {"id": id_column, "time": time_column, sensor_number: column}
+        sensor_data_tsfresh = pd.DataFrame(data)
+        sensor_data_tsfresh.set_index("id")
+
+        sensor_df_map[sensor_number] = pd.concat([sensor_df_map[sensor_number], sensor_data_tsfresh], axis=0)
+
+    output_df = sensor_df_map.pop(sensor_number)    
+    for sensor, df in sensor_df_map.items():
+        output_df = pd.merge(
+        left=output_df, 
+        right=df,
+        how='left',
+        left_on=['id', 'time'],
+        right_on=['id', 'time'],
+        )    
+    
+    return output_df.dropna(axis=1)
+
+if __name__ == "__main__":
+    time_range = (0, 17.70)
+
+    for i in range(12, 16):
+        machine_csv = Path(f"examples/dumps_kgt_bueh/data_1/machine_data/{i}.csv")
+
+        if not machine_csv.exists():
+            print(f"Skipping machine {machine_csv.stem}")
+            continue
+
+        sensor_df = pd.read_csv(machine_csv, sep=";", index_col="Time [s]")
+
+        df_tsfresh = convert_to_tsfresh(sensor_df, time_range)
+
+        container = FeatureContainer()
+        container.load(PATH_DICT["features"], PATH_DICT["forest_params"])
+
+        container.compute_feature_state(df_tsfresh, compute_for_all_features=True)
+        container.feature_state.to_pickle(f"./examples/dumps_kgt_bueh/data_1/pickled_feature_state_{i}.pkl")
+
+        container.feature_state = pd.read_pickle(f"./examples/dumps_kgt_bueh/data_1/pickled_feature_state_{i}.pkl")
+
+        print(container.feature_state)
+        pass
