@@ -59,12 +59,14 @@ def load_csv_file(filepath: str) -> pd.DataFrame:
 def segment_by_time_range(dataframe: pd.DataFrame, time_range: Tuple[float, float]) -> pd.DataFrame:
     """Segment the data based on the provided time range."""
     start_time, end_time = time_range
+   
     return dataframe[(dataframe.index >= start_time) & (dataframe.index <= end_time)]
 
 
 def extract_sensor_name(column_name: str) -> str:
     """Extract sensor name from the column name."""
     return column_name.split("_")[3]  # Assuming the sensor name is always in the same position
+
 
 def extract_date_time(column_name: str) -> datetime:
     """Extract sensor name from the column name."""
@@ -83,18 +85,23 @@ def combine_sensor_columns(sensor_columns: List[pd.DataFrame]) -> pd.DataFrame:
     return pd.concat(sensor_columns, axis=1)
 
 
-def extract_sensor_dfs_from_raw_data(machine_df: pd.DataFrame) -> List[SensorData]:
+def extract_sensor_dfs_from_raw_data(machine_df: pd.DataFrame, target_sensors: list) -> List[SensorData]:
     sensor_list: List[SensorData] = []
     sensor_columns = {}
     # Group columns by sensor name
     for column in machine_df.columns:
         sensor_name = extract_sensor_name(column)
+        
         if sensor_name not in sensor_columns:
             sensor_columns[sensor_name] = []
+        
         sensor_columns[sensor_name].append(machine_df[[column]])  # Append the dataframe for this column
 
     # For each sensor, combine the relevant columns and store them as SensorData
     for sensor_name, columns in sensor_columns.items():
+        if sensor_name.lower() not in [s.lower() for s in target_sensors]:
+            continue
+
         combined_sensor_df = combine_sensor_columns(columns)
         sensor_list.append(SensorData(sensor_name, combined_sensor_df))
 
@@ -102,18 +109,29 @@ def extract_sensor_dfs_from_raw_data(machine_df: pd.DataFrame) -> List[SensorDat
 
 
 def create_machine_object(
-    machine_file: str, label_file: str, time_range: Tuple[float, float], replacement_dates: dict
+    machine_file: str, label_file: str, time_range: Tuple[float, float], target_sensors: list, replacement_dates: dict, discarded_timeseries: dict
 ) -> Machine:
     """Create a machine object for a specific machine file within a given time range."""
     machine_name = Path(machine_file).stem
     replacement_date = replacement_dates.get(machine_name)
+
+    if machine_name in discarded_timeseries:
+        discarded_ts_sensors, discarded_ts = discarded_timeseries.get(machine_name)
 
     machine_df = load_csv_file(machine_file)
     label_df = np.array(pd.read_excel(label_file, header=None))
 
     # Segment the machine data by the provided time range
     machine_df = segment_by_time_range(machine_df, time_range).dropna(axis=1)
-    sensor_list = extract_sensor_dfs_from_raw_data(machine_df)
+    sensor_list = extract_sensor_dfs_from_raw_data(machine_df, target_sensors)
+ 
+    # manually remove some time series
+    if machine_name in discarded_timeseries:
+        discarded_ts.sort(key=lambda x: -x)
+        for sensor in sensor_list:            
+            if sensor.sensor_name.lower() in [s.lower() for s in discarded_ts_sensors]:
+                for column in discarded_ts:
+                    sensor.dataframe = sensor.dataframe.drop(sensor.dataframe.columns[column], axis=1)
 
     # if a tool replacement has occurred split the data
     sensor_list_post_fix = None
@@ -128,6 +146,7 @@ def create_machine_object(
             sensor_list_post_fix.append(SensorData(sensor.sensor_name, sensor.dataframe.iloc[:, replacement_date:]))
             sensor_list.append(SensorData(sensor.sensor_name, sensor.dataframe.iloc[:, 0:replacement_date]))
 
+        for sensor in sensor_list_tmp:
             assert sensor.dataframe.shape[0] == sensor_list_tmp[-1].dataframe.shape[0]
             assert (
                 sensor.dataframe.shape[1]
@@ -148,7 +167,8 @@ def create_machine_object(
 def combine_multi_machine_data(sensor_name: str, training_machines: List[Machine]) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Merge sensor data and labels from all training machines"""
 
-    print(f"Merging training data from {len(training_machines)} machines")
+    machine_names = ", ".join([m.machine_name for m in training_machines])
+    print(f"Merging training data from machines {machine_names}")
 
     # merge training labels
     training_labels = training_machines[0].labels
@@ -173,13 +193,7 @@ def combine_multi_machine_data(sensor_name: str, training_machines: List[Machine
 def convert_to_tsfresh(df_csv: pd.DataFrame, time_range: tuple) -> Tuple[list, Dict[int, any]]:
     """Convert time, sensor0/datetime0, .., sensor0/datetimeN; ..,sensorM/dateTimeN => id, time, sensor0, .., sensorM
     
-    """
-
-
-    time_series_map: Dict[int, list] = {}
-
-    sensor_list = [0, 1, 2, 3, 4, 5, 6, 7]
-    
+    """    
     output_df = pd.DataFrame(columns=["time","id"])
     output_df.set_index("id") 
 
