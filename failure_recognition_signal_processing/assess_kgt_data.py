@@ -16,8 +16,15 @@ def split_training_data_by_label(sensor_df: pd.DataFrame, label_df: pd.DataFrame
 
 def assess_test_results_in_envelope(machine_name: str, labels: pd.DataFrame, predictions: pd.DataFrame) -> tuple:
 
+    assert labels.shape == predictions.shape
+    assert len(labels.shape) == 1
+
     false_positives = int(((labels == False) & (predictions == True)).sum())
     true_negatives = int(((labels == False) & (predictions == False)).sum())
+    false_negatives = int(((labels == True) & (predictions == False)).sum())
+    true_positives = int(((labels == True) & (predictions == True)).sum())
+
+    assert(false_positives + true_negatives + false_negatives + true_positives == len(predictions))
 
     if false_positives + true_negatives > 0:
         false_positive_rate = (machine_name, false_positives / (false_positives + true_negatives))
@@ -26,6 +33,11 @@ def assess_test_results_in_envelope(machine_name: str, labels: pd.DataFrame, pre
 
     if (labels == True).sum() > 0:
         f1 = f1_score(labels, predictions)
+        f1_manual = (2*true_positives) / (2*true_positives + false_positives + false_negatives)        
+
+        if abs(f1 - f1_manual) > 0.01:
+            raise ValueError("ERROR, F1 error f1, f1_manual", f1, f1_manual)
+
         test_f1_score = (machine_name, f1)
     else:
         test_f1_score = (machine_name, None)
